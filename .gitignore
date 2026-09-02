@@ -1,0 +1,44 @@
+# ==============================
+# Variáveis de ambiente e segredos
+# ==============================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# ==============================
+# Dependências (para quando o projeto passar a usar build tools)
+# ==============================
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ==============================
+# Build / cache
+# ==============================
+dist/
+build/
+.cache/
+.parcel-cache/
+.vite/
+
+# ==============================
+# Sistema operacional / editores
+# ==============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+
+# ==============================
+# Supabase (preparação para próximas etapas)
+# ==============================
+.supabase/
+supabase/.temp/

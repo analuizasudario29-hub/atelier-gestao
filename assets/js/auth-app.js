@@ -67,7 +67,7 @@ function AuthShell({ children }) {
   },
     React.createElement("div", { className: "w-full", style: { maxWidth: "380px" } },
       React.createElement("div", { className: "flex flex-col items-center gap-2 mb-6" },
-      React.createElement("div", {
+        React.createElement("div", {
           className: "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold",
           style: { border: `1px solid ${GOLD}`, color: GOLD }
         }, "A"),
@@ -307,18 +307,106 @@ function ResetPasswordView() {
   );
 }
 
-function UserBar({ email, onLogout }) {
+function planStatusLabel(accountStatus) {
+  if (!accountStatus) return "";
+  if (accountStatus.is_exempt) return "Conta isenta";
+  const map = {
+    trialing: "Período de teste",
+    active: "Assinatura ativa",
+    pending: "Pagamento pendente",
+    canceled: "Assinatura cancelada",
+    expired: "Assinatura expirada"
+  };
+  return map[accountStatus.subscription_status] || "Sem assinatura";
+}
+
+function daysUntil(dateString) {
+  if (!dateString) return null;
+  const diffMs = new Date(dateString).getTime() - Date.now();
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function SubscriptionPanel({ accountStatus, onClose }) {
+  const days = daysUntil(accountStatus && accountStatus.current_period_end);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "absolute right-4 sm:right-6 top-10 z-50 w-72 rounded-sm p-4 text-xs",
+    style: { background: PANEL, border: `1px solid ${LINE}`, color: MUTED, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }
+  },
+    React.createElement("div", { className: "flex items-center justify-between mb-3" },
+      React.createElement("span", { className: "font-semibold", style: { color: "#e7e3d6" } }, "Minha assinatura"),
+      React.createElement("button", { onClick: onClose, style: { color: MUTED } }, "✕")
+    ),
+    React.createElement("div", { className: "flex flex-col gap-1.5" },
+      React.createElement("div", null, "Conta: ", React.createElement("strong", { style: { color: "#d8d4c8" } }, accountStatus?.account_name || "—")),
+      React.createElement("div", null, "Plano: ", React.createElement("strong", { style: { color: "#d8d4c8" } }, accountStatus?.plan_name || "—")),
+      React.createElement("div", null, "Status: ", React.createElement("strong", { style: { color: accountStatus?.has_access ? GREEN : RED } }, planStatusLabel(accountStatus))),
+      !accountStatus?.is_exempt && accountStatus?.current_period_end && React.createElement("div", null,
+        accountStatus.subscription_status === "trialing" ? "Teste termina em: " : "Próxima renovação: ",
+        React.createElement("strong", { style: { color: "#d8d4c8" } },
+          new Date(accountStatus.current_period_end).toLocaleDateString("pt-BR"),
+          days !== null && days >= 0 ? ` (${days} dia${days === 1 ? "" : "s"})` : ""
+        )
+      )
+    )
+  );
+}
+
+function UserBar({ email, onLogout, accountStatus }) {
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
   async function handleClick() {
     setLoggingOut(true);
     await onLogout();
   }
   return /*#__PURE__*/React.createElement("div", {
-    className: "w-full flex items-center justify-between px-4 sm:px-6 py-1.5 text-xs",
+    className: "w-full flex items-center justify-between px-4 sm:px-6 py-1.5 text-xs relative",
     style: { background: PANEL2, borderBottom: `1px solid ${LINE}`, color: MUTED }
   },
     React.createElement("span", null, "Conectado como ", React.createElement("strong", { style: { color: "#d8d4c8" } }, email)),
-    React.createElement(GhostButton, { onClick: handleClick, className: "!py-1 !px-2.5 !text-[11px]" }, loggingOut ? "Saindo…" : "Sair")
+    React.createElement("div", { className: "flex items-center gap-3" },
+      accountStatus && React.createElement("button", {
+        onClick: () => setShowPanel(v => !v),
+        className: "px-2 py-0.5 rounded-sm",
+        style: { border: `1px solid ${LINE}`, color: accountStatus.has_access ? GREEN : RED }
+      }, planStatusLabel(accountStatus)),
+      React.createElement(GhostButton, { onClick: handleClick, className: "!py-1 !px-2.5 !text-[11px]" }, loggingOut ? "Saindo…" : "Sair")
+    ),
+    showPanel && React.createElement(SubscriptionPanel, { accountStatus, onClose: () => setShowPanel(false) })
+  );
+}
+
+function SubscriptionBlockedScreen({ accountStatus, onLogout }) {
+  const [loggingOut, setLoggingOut] = useState(false);
+  async function handleLogout() {
+    setLoggingOut(true);
+    await onLogout();
+  }
+  const statusMessages = {
+    pending: "O pagamento da sua assinatura está pendente. Regularize para voltar a ter acesso completo.",
+    canceled: "Sua assinatura foi cancelada. Reative para voltar a ter acesso ao CRM.",
+    expired: "Seu período de teste ou assinatura expirou. Assine um plano para continuar."
+  };
+  const message = statusMessages[accountStatus?.subscription_status] ||
+    "Sua conta não tem uma assinatura ativa no momento.";
+
+  return /*#__PURE__*/React.createElement(AuthShell, null,
+    React.createElement("div", { className: "flex flex-col gap-4 text-center" },
+      React.createElement("h1", { className: "text-lg font-semibold", style: { color: "#f0ede2" } }, "Assinatura necessária"),
+      React.createElement("p", { className: "text-sm", style: { color: MUTED } }, message),
+      React.createElement("div", {
+        className: "text-xs px-3 py-2 rounded-sm text-left",
+        style: { background: PANEL2, border: `1px solid ${LINE}`, color: MUTED }
+      },
+        React.createElement("div", null, "Plano: ", React.createElement("strong", { style: { color: "#d8d4c8" } }, accountStatus?.plan_name || "—")),
+        React.createElement("div", null, "Status: ", React.createElement("strong", { style: { color: RED } }, planStatusLabel(accountStatus)))
+      ),
+      React.createElement("p", { className: "text-xs", style: { color: MUTED } },
+        "O gateway de pagamento ainda não foi conectado nesta etapa. Quando estiver, o botão de assinar/regularizar vai aparecer aqui."
+      ),
+      React.createElement(GhostButton, { onClick: handleLogout, className: "w-full justify-center" },
+        loggingOut ? "Saindo…" : "Sair"
+      )
+    )
   );
 }
 
@@ -330,6 +418,7 @@ function AuthGate() {
   const [session, setSession] = useState(null);
   const [accountReady, setAccountReady] = useState(false);
   const [accountError, setAccountError] = useState("");
+  const [accountStatus, setAccountStatus] = useState(null);
   const [view, setView] = useState("login");
 
   useEffect(() => {
@@ -366,10 +455,15 @@ function AuthGate() {
     };
   }, []);
 
-     useEffect(() => {
+  useEffect(() => {
     if (status === "signedIn" && session && session.user && !accountReady) {
       ensureAccountForUser(session.user)
-        .then(() => setAccountReady(true))
+        .then(() => window.supabaseClient.rpc("get_my_account_status"))
+        .then(({ data, error }) => {
+          if (error) throw error;
+          setAccountStatus(data && data[0] ? data[0] : null);
+          setAccountReady(true);
+        })
         .catch(e => setAccountError(e.message || "Erro ao preparar sua conta."));
     }
   }, [status, session, accountReady]);
@@ -405,8 +499,12 @@ function AuthGate() {
     return LoadingScreen("Preparando sua conta…");
   }
 
+  if (accountStatus && !accountStatus.has_access) {
+    return React.createElement(SubscriptionBlockedScreen, { accountStatus, onLogout: handleLogout });
+  }
+
   return /*#__PURE__*/React.createElement(React.Fragment, null,
-    React.createElement(UserBar, { email: session.user.email, onLogout: handleLogout }),
+    React.createElement(UserBar, { email: session.user.email, onLogout: handleLogout, accountStatus }),
     React.createElement(App, null)
   );
 }

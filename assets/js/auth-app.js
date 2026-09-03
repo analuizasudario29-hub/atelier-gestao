@@ -390,11 +390,16 @@ function AuthGate() {
     };
   }, []);
 
-  useEffect(() => {
+   useEffect(() => {
     if (status === "signedIn" && session && session.user && !accountReady) {
+      window.supabaseClient.auth.getSession().then(({ data }) => {
+        console.log("[DEBUG] session.user.id (estado React):", session.user.id);
+        console.log("[DEBUG] getSession().user.id (fresco):", data.session && data.session.user && data.session.user.id);
+        console.log("[DEBUG] access_token (primeiros 40 chars):", data.session && data.session.access_token && data.session.access_token.slice(0, 40));
+      });
       ensureAccountForUser(session.user)
         .then(() => setAccountReady(true))
-        .catch(e => setAccountError(e.message || "Erro ao preparar sua conta."));
+        .catch(e => setAccountError(`${e.message || "Erro ao preparar sua conta."} [uid: ${session.user.id}]`));
     }
   }, [status, session, accountReady]);
 

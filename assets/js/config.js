@@ -17,5 +17,5 @@
  */
 window.__SUPABASE_CONFIG__ = {
   url: "https://aevonlnpvppmvtspmizk.supabase.co",
-  anonKey: "sb_publishable_dr5PtM8YF8e51G9utcryaQ_ev85W1Ya"
+ anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFldm9ubG5wdnBwbXZ0c3BtaXprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzOTQyODIsImV4cCI6MjEwMzk3MDI4Mn0.dtV3gMHpgASHALHNwHCmr9zDwyA20pBZjEcogetJ7TI"
 };

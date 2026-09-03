@@ -91,9 +91,9 @@ function AuthShell({ children }) {
   },
     React.createElement("div", { className: "w-full", style: { maxWidth: "380px" } },
       React.createElement("div", { className: "flex flex-col items-center gap-2 mb-6" },
-        React.createElement("div", {
-          className: "w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold",
-          style: { border: `1px solid ${LINE}`, color: GOLD }
+      React.createElement("div", {
+          className: "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold",
+          style: { border: `1px solid ${GOLD}`, color: GOLD }
         }, "A"),
         React.createElement("span", {
           className: "text-xs uppercase tracking-[0.25em]",

@@ -162,8 +162,127 @@ aquela conta. Rodei também o verificador automático de segurança do Supabase
 
 ### 7. O que ainda falta (próximas etapas)
 
-- Telas de cadastro, login, logout e recuperação de senha no CRM.
-- Ativar o provedor Google no painel do Supabase (Client ID/Secret).
-- Trocar o `localStorage` pelas chamadas reais ao Supabase (`customers`, `products`, `sales`, etc.).
-- Fluxo de criação de conta/empresa (`accounts`) no primeiro acesso de um novo usuário.
+- ~~Telas de cadastro, login, logout e recuperação de senha no CRM.~~ **Feito na Etapa 3.**
+- ~~Ativar o provedor Google no painel do Supabase (Client ID/Secret).~~ **Configuração manual explicada na Etapa 3 — precisa ser feita por você.**
+- Trocar o `localStorage` pelas chamadas reais ao Supabase (`customers`, `products`, `sales`, etc.) — os dados do CRM em si continuam no navegador por enquanto.
+- Fluxo de edição/renomeação da conta/empresa (hoje ela é criada automaticamente com o nome do usuário).
 - Pagamentos, assinatura mensal e bloqueio por inadimplência (fora do escopo desta etapa, como combinado).
+
+---
+
+## Etapa 3 — Login, cadastro, Google e proteção do CRM
+
+### 1. Fluxo implementado
+
+USUÁRIO → TELA DE LOGIN → SUPABASE AUTH → IDENTIFICAÇÃO DO USUÁRIO → CONTA/EMPRESA → CRM
+
+O CRM não é mais acessível sem autenticação. Um novo arquivo,
+`assets/js/auth-app.js`, decide o que aparece na tela:
+
+- **Sem sessão válida** → tela de login (e-mail/senha, "Esqueci minha senha",
+  "Criar conta", "Continuar com Google").
+- **Com sessão válida** → o CRM original (`App()`, de `app.js`, sem nenhuma
+  alteração interna), com uma barra fina no topo mostrando o e-mail logado e
+  o botão "Sair".
+
+### 2. Cadastro
+
+Ao criar conta (nome, e-mail, senha, confirmação), o sistema:
+
+1. Cria o usuário no Supabase Auth (`auth.users`).
+2. Um gatilho do banco (já criado na Etapa 2) cria o `profile` automaticamente.
+3. Assim que a sessão fica ativa (imediatamente, ou após confirmar o e-mail e
+   fazer login — depende da configuração do seu projeto), o app cria a
+   `account` (empresa) e o vínculo em `account_members` com papel `owner`,
+   automaticamente, na primeira vez que o usuário entra.
+4. A partir daí, o usuário tem acesso ao CRM.
+
+> Hoje a conta/empresa é criada com o nome da pessoa (ex: "Empresa de Ana").
+> Um fluxo para renomear a empresa fica para uma próxima etapa.
+
+### 3. Login com Google
+
+O botão "Continuar com Google" usa o fluxo oficial de OAuth do Supabase
+(`signInWithOAuth`). O Supabase nunca vê nem armazena a senha do Google — ele
+recebe apenas a confirmação de identidade do próprio Google. Se o e-mail do
+Google já existir como usuário, ele entra na conta existente; se for novo, o
+mesmo fluxo de criação automática de conta (item 2, passo 3) entra em ação.
+
+**Importante:** por segurança, o Google exige credenciais (Client ID/Secret)
+que não podem estar no código-fonte. Por isso, o provedor Google **ainda
+precisa ser ativado manualmente** — veja o passo a passo mais abaixo.
+
+### 4. Recuperação de senha
+
+"Esqueci minha senha" envia um e-mail via Supabase Auth
+(`resetPasswordForEmail`). Ao clicar no link do e-mail, a pessoa volta para o
+site já autenticada em modo de recuperação, e uma tela própria
+("Definir nova senha") aparece para ela escolher a nova senha
+(`updateUser`).
+
+### 5. Sessão
+
+- **Login persistente:** o Supabase guarda a sessão no navegador; ao fechar e
+  reabrir o site, a pessoa continua logada (até a sessão expirar ou fazer logout).
+- **Logout:** botão "Sair" na barra superior, chama `signOut()`.
+- **Verificação de sessão:** `auth-app.js` escuta mudanças de sessão em tempo
+  real (`onAuthStateChange`) e sempre redireciona para a tela de login quando
+  não há sessão válida.
+- **Proteção do CRM:** o componente `App()` (o CRM) só é renderizado depois
+  que existe uma sessão válida **e** a conta/empresa do usuário já foi
+  identificada/criada.
+
+### 6. Multi-tenant na prática
+
+Depois do login, a conta (`account_id`) do usuário é identificada via
+`account_members`. Essa identificação, junto com as políticas de RLS já
+criadas na Etapa 2, é o que impede um cliente de acessar dados de outro —
+tanto em qualquer chamada futura ao banco quanto nas tabelas já existentes
+(`accounts`, `account_members`, `customers`, `products`, etc.).
+
+**Importante sobre o CRM em si:** as telas de estoque, vendas, clientes, etc.
+ainda leem e gravam no `localStorage` do navegador (não mudou nesta etapa).
+Ou seja, a separação multi-tenant já está garantida na camada de conta/login/
+banco de dados, mas os *dados do CRM* propriamente ditos só vão migrar do
+`localStorage` para o Supabase (respeitando essa mesma separação) em uma
+próxima etapa.
+
+### 7. O que você precisa configurar manualmente
+
+Estas etapas envolvem credenciais que não podem — e não devem — ficar no
+código-fonte:
+
+**No Supabase Dashboard (Authentication → URL Configuration):**
+- Defina o **Site URL** para a URL do seu site (ex: a do GitHub Pages ou seu domínio final).
+- Em **Redirect URLs**, adicione essa mesma URL (necessário para o login com Google e o link de recuperação de senha funcionarem corretamente).
+
+**No Google Cloud Console + Supabase Dashboard (Authentication → Providers → Google), para ativar "Continuar com Google":**
+1. No Google Cloud Console (console.cloud.google.com), crie/selecione um projeto.
+2. Configure a tela de consentimento OAuth (OAuth consent screen).
+3. Em "Credentials", crie um **OAuth Client ID** do tipo **Web application**.
+4. Em **Authorized JavaScript origins**, adicione a URL do seu site.
+5. Em **Authorized redirect URIs**, adicione exatamente:
+   `https://aevonlnpvppmvtspmizk.supabase.co/auth/v1/callback`
+6. Copie o **Client ID** e o **Client Secret** gerados.
+7. No painel do Supabase, vá em Authentication → Providers → Google, ative o provedor e cole o Client ID e Client Secret ali (nunca no código).
+
+Enquanto isso não for feito, o botão "Continuar com Google" aparece
+normalmente, mas o login por e-mail/senha funciona já hoje sem precisar de
+nenhuma configuração extra.
+
+### 8. Testes realizados
+
+Testei automaticamente (simulação de navegador) antes de considerar a etapa
+concluída:
+
+- Tela de login renderiza corretamente (e-mail, senha, "Esqueci minha senha", "Criar conta", "Continuar com Google").
+- Login com e-mail/senha funciona e libera o CRM.
+- Ao logar pela primeira vez, a conta/empresa é criada automaticamente e vinculada ao usuário (`accounts` + `account_members`).
+- Logout funciona e volta para a tela de login.
+- Alternância entre as telas de login, cadastro, "esqueci minha senha" e "definir nova senha" funciona.
+- O CRM em si continua renderizando exatamente igual a antes.
+
+Os testes que dependem de credenciais reais do Google e de dois usuários de
+verdade (criar duas contas e confirmar que uma não vê os dados da outra)
+precisam ser feitos por você, já em produção, seguindo o passo a passo que
+combinamos na conversa.

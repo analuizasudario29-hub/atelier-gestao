@@ -3045,5 +3045,5 @@ function Config({
     }
   }, "Todos os dados ficam salvos automaticamente neste navegador (localStorage) e continuam disponíveis mesmo após fechar e reabrir o arquivo."))));
 }
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(/*#__PURE__*/React.createElement(App, null));
+/* O root.render agora fica em assets/js/auth-app.js, que decide entre
+   mostrar a tela de login ou o App (CRM), dependendo da sessão. */

@@ -314,6 +314,7 @@ function planStatusLabel(accountStatus) {
     trialing: "Período de teste",
     active: "Assinatura ativa",
     pending: "Pagamento pendente",
+    paused: "Assinatura pausada",
     canceled: "Assinatura cancelada",
     expired: "Assinatura expirada"
   };
@@ -375,15 +376,61 @@ function UserBar({ email, onLogout, accountStatus }) {
   );
 }
 
-function SubscriptionBlockedScreen({ accountStatus, onLogout }) {
+function SubscriptionBlockedScreen({ accountStatus, onLogout, onSubscribed }) {
   const [loggingOut, setLoggingOut] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeError, setSubscribeError] = useState("");
+  const [waitingConfirmation, setWaitingConfirmation] = useState(
+    () => new URLSearchParams(window.location.search).get("mp_return") === "1"
+  );
+
   async function handleLogout() {
     setLoggingOut(true);
     await onLogout();
   }
+
+  async function handleSubscribe() {
+    setSubscribeError("");
+    setSubscribing(true);
+    const { data, error } = await window.supabaseClient.functions.invoke("create-mp-subscription", {
+      method: "POST"
+    });
+    setSubscribing(false);
+    if (error || !data?.init_point) {
+      setSubscribeError("Não foi possível iniciar a assinatura agora. Tente novamente em instantes.");
+      return;
+    }
+    window.location.href = data.init_point;
+  }
+
+  // Depois de voltar do checkout do Mercado Pago, o status ainda depende
+  // do webhook confirmar — então ficamos consultando por um tempo.
+  useEffect(() => {
+    if (!waitingConfirmation) return;
+    let tries = 0;
+    const interval = setInterval(async () => {
+      tries += 1;
+      const { data } = await window.supabaseClient.rpc("get_my_account_status");
+      const fresh = data && data[0];
+      if (fresh?.has_access) {
+        clearInterval(interval);
+        onSubscribed(fresh);
+      } else if (tries >= 10) {
+        clearInterval(interval);
+        setWaitingConfirmation(false);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [waitingConfirmation]);
+
+  if (waitingConfirmation) {
+    return LoadingScreen("Confirmando seu pagamento com o Mercado Pago…");
+  }
+
   const statusMessages = {
     pending: "O pagamento da sua assinatura está pendente. Regularize para voltar a ter acesso completo.",
-    canceled: "Sua assinatura foi cancelada. Reative para voltar a ter acesso ao CRM.",
+    paused: "Sua assinatura está pausada. Reative para voltar a ter acesso ao CRM.",
+    canceled: "Sua assinatura foi cancelada. Assine novamente para voltar a ter acesso ao CRM.",
     expired: "Seu período de teste ou assinatura expirou. Assine um plano para continuar."
   };
   const message = statusMessages[accountStatus?.subscription_status] ||
@@ -400,8 +447,10 @@ function SubscriptionBlockedScreen({ accountStatus, onLogout }) {
         React.createElement("div", null, "Plano: ", React.createElement("strong", { style: { color: "#d8d4c8" } }, accountStatus?.plan_name || "—")),
         React.createElement("div", null, "Status: ", React.createElement("strong", { style: { color: RED } }, planStatusLabel(accountStatus)))
       ),
-      React.createElement("p", { className: "text-xs", style: { color: MUTED } },
-        "O gateway de pagamento ainda não foi conectado nesta etapa. Quando estiver, o botão de assinar/regularizar vai aparecer aqui."
+      React.createElement(AuthMessage, { error: subscribeError }),
+      React.createElement(GoldButton, { onClick: handleSubscribe, disabled: subscribing, className: "w-full justify-center" },
+        subscribing ? React.createElement(Icon, { name: "loader", size: 14, className: "spin" }) : null,
+        subscribing ? "Abrindo o Mercado Pago…" : "Assinar agora"
       ),
       React.createElement(GhostButton, { onClick: handleLogout, className: "w-full justify-center" },
         loggingOut ? "Saindo…" : "Sair"
@@ -500,7 +549,14 @@ function AuthGate() {
   }
 
   if (accountStatus && !accountStatus.has_access) {
-    return React.createElement(SubscriptionBlockedScreen, { accountStatus, onLogout: handleLogout });
+    return React.createElement(SubscriptionBlockedScreen, {
+      accountStatus,
+      onLogout: handleLogout,
+      onSubscribed: (freshStatus) => {
+        setAccountStatus(freshStatus);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    });
   }
 
   return /*#__PURE__*/React.createElement(React.Fragment, null,

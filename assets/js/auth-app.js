@@ -39,33 +39,9 @@ function translateAuthError(error) {
    ============================================================ */
 async function ensureAccountForUser(user) {
   const client = window.supabaseClient;
-
-  const { data: memberships, error: mErr } = await client
-    .from("account_members")
-    .select("account_id")
-    .eq("user_id", user.id)
-    .limit(1);
-
-  if (mErr) throw mErr;
-  if (memberships && memberships.length > 0) return memberships[0].account_id;
-
-  const fullName = (user.user_metadata && user.user_metadata.full_name) || user.email;
-
-  const { data: account, error: aErr } = await client
-    .from("accounts")
-    .insert({ name: fullName, owner_id: user.id })
-    .select()
-    .single();
-
-  if (aErr) throw aErr;
-
-  const { error: memErr } = await client
-    .from("account_members")
-    .insert({ account_id: account.id, user_id: user.id, role: "owner" });
-
-  if (memErr) throw memErr;
-
-  return account.id;
+  const { data, error } = await client.rpc("ensure_account_for_current_user");
+  if (error) throw error;
+  return data;
 }
 
 /* ============================================================
@@ -390,16 +366,11 @@ function AuthGate() {
     };
   }, []);
 
-   useEffect(() => {
+     useEffect(() => {
     if (status === "signedIn" && session && session.user && !accountReady) {
-      window.supabaseClient.auth.getSession().then(({ data }) => {
-        console.log("[DEBUG] session.user.id (estado React):", session.user.id);
-        console.log("[DEBUG] getSession().user.id (fresco):", data.session && data.session.user && data.session.user.id);
-        console.log("[DEBUG] access_token (primeiros 40 chars):", data.session && data.session.access_token && data.session.access_token.slice(0, 40));
-      });
       ensureAccountForUser(session.user)
         .then(() => setAccountReady(true))
-        .catch(e => setAccountError(`${e.message || "Erro ao preparar sua conta."} [uid: ${session.user.id}]`));
+        .catch(e => setAccountError(e.message || "Erro ao preparar sua conta."));
     }
   }, [status, session, accountReady]);
 

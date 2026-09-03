@@ -89,7 +89,81 @@ reorganizar o projeto novamente.
 
 ## Segurança
 
-- Nenhuma credencial, chave ou token está versionado neste repositório.
-- O arquivo `.env.example` mostra quais variáveis serão necessárias no futuro,
-  mas não contém valores reais.
+- Nenhuma credencial secreta está versionada neste repositório.
 - O `.gitignore` já bloqueia arquivos `.env`, chaves e pastas de segredos.
+- A única chave presente no código (`assets/js/config.js`) é a **publishable/anon
+  key** do Supabase, que é pública por design e protegida pelas políticas de
+  RLS do banco — ver seção abaixo.
+  
+---
+
+## Etapa 2 — Supabase (banco de dados, multi-tenant e preparação de Auth)
+
+### 1. Projeto Supabase conectado
+
+- **Nome:** `atelier-gestao`
+- **Região:** `sa-east-1` (São Paulo)
+- **URL:** `https://aevonlnpvppmvtspmizk.supabase.co`
+- A chave pública (anon/publishable) está em `assets/js/config.js` e a
+  inicialização do cliente em `src/config/supabaseClient.js`.
+- **Nenhuma tela do CRM usa o Supabase ainda** — só a infraestrutura de
+  conexão foi preparada. O CRM continua 100% funcional com `localStorage`,
+  exatamente como antes.
+
+### 2. Tabelas criadas
+
+| Tabela | O que guarda |
+|---|---|
+| `profiles` | Dados de perfil de cada usuário (nome, e-mail, avatar). As senhas ficam só no sistema interno do Supabase Auth (`auth.users`), nunca em uma tabela nossa. |
+| `accounts` | Cada linha é uma empresa/cliente (tenant) do sistema. |
+| `account_members` | Liga usuários a contas, com um papel (`owner`, `admin`, `member`). Um usuário pode pertencer a mais de uma conta. |
+| `customers` | Clientes da loja (do CRM em si). |
+| `products` | Produtos/itens vendidos, com preço, custo e quantidade em estoque. |
+| `stock_movements` | Histórico de entradas/saídas/ajustes de estoque. |
+| `sales` | Vendas realizadas. |
+| `sale_items` | Itens de cada venda (liga `sales` a `products`). |
+| `monthly_history` | Histórico mensal consolidado: faturamento, custo, lucro, nº de vendas, novos clientes. |
+
+### 3. Como elas se relacionam (multi-tenant)
+
+Toda tabela do CRM tem uma coluna `account_id`, que aponta para a empresa
+dona daquele dado. É essa coluna, junto com as políticas de RLS, que garante
+a separação entre clientes.
+
+### 4. Separação entre clientes (regra de ouro do multi-tenant)
+
+Um usuário só enxerga dados de contas às quais pertence (via `account_members`).
+Isso é garantido **pelo próprio banco de dados**, não pela interface — ou seja,
+mesmo que alguém tente acessar a API diretamente, o Postgres bloqueia.
+
+### 5. Políticas de RLS criadas
+
+RLS está **ativado em todas as 9 tabelas**. Resumo das políticas:
+
+- **profiles:** cada usuário só lê/edita o próprio perfil.
+- **accounts:** só membros veem a conta; só o dono (`owner_id`) edita ou exclui.
+- **account_members:** só vê membros das próprias contas; só o dono da conta adiciona/remove membros.
+- **customers, products, stock_movements, sales, monthly_history:** acesso liberado (leitura e escrita) apenas para quem pertence à `account_id` daquela linha.
+- **sale_items:** mesma regra, verificada através da venda (`sales`) à qual pertence.
+
+Toda a checagem usa uma função auxiliar `is_account_member(account_id)`, que
+consulta se o usuário logado (`auth.uid()`) está em `account_members` para
+aquela conta. Rodei também o verificador automático de segurança do Supabase
+("Advisors") depois de aplicar tudo — sem alertas críticos.
+
+### 6. Senhas e autenticação
+
+- Nenhuma tabela própria guarda senha em texto — isso é proibido e não foi feito.
+- As credenciais ficam inteiramente sob gestão do **Supabase Auth** (`auth.users`), que já cuida de hash de senha, tokens, sessões, etc.
+- Um gatilho (`on_auth_user_created`) já está pronto: assim que alguém se cadastrar via Supabase Auth, um registro correspondente é criado automaticamente em `profiles`.
+- **E-mail/senha:** o Supabase Auth já vem habilitado por padrão para isso — não precisa de configuração extra.
+- **Login com Google:** precisa ser ativado manualmente no painel do Supabase (Authentication → Providers → Google), usando um Client ID e Client Secret gerados no Google Cloud Console. Isso é intencional: essas credenciais são secretas e não devem passar pelo código-fonte — ficam configuradas direto no painel do Supabase.
+- Cadastro, login, logout e recuperação de senha (as telas em si) ainda não foram implementados no CRM — isso é o objetivo de uma próxima etapa.
+
+### 7. O que ainda falta (próximas etapas)
+
+- Telas de cadastro, login, logout e recuperação de senha no CRM.
+- Ativar o provedor Google no painel do Supabase (Client ID/Secret).
+- Trocar o `localStorage` pelas chamadas reais ao Supabase (`customers`, `products`, `sales`, etc.).
+- Fluxo de criação de conta/empresa (`accounts`) no primeiro acesso de um novo usuário.
+- Pagamentos, assinatura mensal e bloqueio por inadimplência (fora do escopo desta etapa, como combinado).

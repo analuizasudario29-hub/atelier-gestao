@@ -331,7 +331,7 @@ function SubscriptionPanel({ accountStatus, onClose }) {
   const days = daysUntil(accountStatus && accountStatus.current_period_end);
   return /*#__PURE__*/React.createElement("div", {
     className: "absolute z-50 rounded-sm p-4 text-xs",
-    style: { right: "16px", top: "40px", width: "288px", background: PANEL, border: `1px solid ${LINE}`, color: MUTED, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }
+    style: { right: "16px", top: "40px", width: "320px", background: PANEL, border: `1px solid ${LINE}`, color: MUTED, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }
   },
     React.createElement("div", { className: "flex items-center justify-between mb-3" },
       React.createElement("span", { style: { color: "#e7e3d6", fontWeight: 600 } }, "Minha assinatura"),
@@ -387,12 +387,66 @@ function UserBar({ email, onLogout, accountStatus }) {
   );
 }
 
+function daysLabel(dateString) {
+  const d = daysUntil(dateString);
+  if (d === null) return "—";
+  if (d < 0) return "vencido";
+  if (d === 0) return "vence hoje";
+  return `${d} dia${d === 1 ? "" : "s"}`;
+}
+
+function AdminCustomerList({ refreshKey }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    window.supabaseClient.rpc("admin_list_customers").then(({ data, error }) => {
+      if (!mounted) return;
+      setLoading(false);
+      if (error) { setError(error.message); return; }
+      setCustomers((data || []).filter(c => !c.is_exempt));
+    });
+    return () => { mounted = false; };
+  }, [refreshKey]);
+
+  if (loading) {
+    return React.createElement("div", { className: "text-xs", style: { color: MUTED } }, "Carregando clientes…");
+  }
+  if (error) {
+    return React.createElement(AuthMessage, { error });
+  }
+  if (customers.length === 0) {
+    return React.createElement("div", { className: "text-xs", style: { color: MUTED } }, "Nenhum cliente cadastrado ainda.");
+  }
+
+  return /*#__PURE__*/React.createElement("div", { className: "flex flex-col gap-2", style: { maxHeight: "220px", overflowY: "auto" } },
+    customers.map(c => React.createElement("div", {
+      key: c.account_id,
+      className: "flex items-center justify-between px-2 py-1.5 rounded-sm",
+      style: { background: PANEL2, border: `1px solid ${LINE}` }
+    },
+      React.createElement("div", { style: { minWidth: 0 } },
+        React.createElement("div", { style: { color: "#d8d4c8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, c.account_name),
+        React.createElement("div", { style: { color: MUTED, fontSize: "10px" } }, c.owner_email)
+      ),
+      React.createElement("div", {
+        style: { color: c.has_access ? GREEN : RED, fontSize: "10px", whiteSpace: "nowrap", marginLeft: "8px" }
+      }, daysLabel(c.current_period_end))
+    ))
+  );
+}
+
 function AdminActivatePanel() {
   const [email, setEmail] = useState("");
   const [days, setDays] = useState("30");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [showList, setShowList] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   async function handleActivate(e) {
     e.preventDefault();
@@ -415,21 +469,31 @@ function AdminActivatePanel() {
       ? `Ativado! ${row.out_account_name} tem acesso até ${new Date(row.out_new_period_end).toLocaleDateString("pt-BR")}.`
       : "Ativado!");
     setEmail("");
+    setRefreshKey(k => k + 1);
   }
 
-  return /*#__PURE__*/React.createElement("form", { onSubmit: handleActivate, className: "flex flex-col gap-3 text-xs", style: { marginTop: "8px" } },
-    React.createElement("div", { style: { color: "#e7e3d6", fontWeight: 600 } }, "Ativar cliente manualmente"),
-    React.createElement(AuthMessage, { error, info: message }),
-    React.createElement(Field, { label: "E-mail do cliente (o que ele usou pra criar conta)" },
-      React.createElement(TextInput, { type: "email", required: true, value: email, onChange: e => setEmail(e.target.value), placeholder: "cliente@email.com" })
+  return /*#__PURE__*/React.createElement("div", { style: { marginTop: "8px" } },
+    React.createElement("form", { onSubmit: handleActivate, className: "flex flex-col gap-3 text-xs" },
+      React.createElement("div", { style: { color: "#e7e3d6", fontWeight: 600 } }, "Ativar cliente manualmente"),
+      React.createElement(AuthMessage, { error, info: message }),
+      React.createElement(Field, { label: "E-mail do cliente (o que ele usou pra criar conta)" },
+        React.createElement(TextInput, { type: "email", required: true, value: email, onChange: e => setEmail(e.target.value), placeholder: "cliente@email.com" })
+      ),
+      React.createElement(Field, { label: "Dias de acesso" },
+        React.createElement(TextInput, { type: "number", min: 1, value: days, onChange: e => setDays(e.target.value) })
+      ),
+      React.createElement(GoldButton, { type: "submit", disabled: loading, className: "w-full justify-center" },
+        loading ? React.createElement(Icon, { name: "loader", size: 14, className: "spin" }) : null,
+        loading ? "Ativando…" : "Ativar acesso"
+      )
     ),
-    React.createElement(Field, { label: "Dias de acesso" },
-      React.createElement(TextInput, { type: "number", min: 1, value: days, onChange: e => setDays(e.target.value) })
-    ),
-    React.createElement(GoldButton, { type: "submit", disabled: loading, className: "w-full justify-center" },
-      loading ? React.createElement(Icon, { name: "loader", size: 14, className: "spin" }) : null,
-      loading ? "Ativando…" : "Ativar acesso"
-    )
+    React.createElement("button", {
+      type: "button",
+      onClick: () => setShowList(v => !v),
+      className: "text-xs w-full text-center",
+      style: { color: GOLD_SOFT, marginTop: "10px", marginBottom: "6px" }
+    }, showList ? "Esconder lista de clientes" : "Ver todos os clientes"),
+    showList && React.createElement(AdminCustomerList, { refreshKey })
   );
 }
 

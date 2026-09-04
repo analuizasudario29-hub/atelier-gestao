@@ -395,7 +395,14 @@ function PixPaymentView({ onBack, onConfirmed }) {
     });
     setLoading(false);
     if (error || !data?.qr_code) {
-      setError("Não foi possível gerar o Pix agora. Tente novamente em instantes.");
+      let detail = error?.message || "sem detalhes";
+      try {
+        if (error?.context?.json) {
+          const body = await error.context.json();
+          detail = JSON.stringify(body);
+        }
+      } catch (_) { /* mantem o detail atual */ }
+      setError(`Não foi possível gerar o Pix agora. [debug: ${detail}]`);
       return;
     }
     setPix(data);

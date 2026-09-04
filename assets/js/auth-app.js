@@ -68,12 +68,12 @@ function AuthShell({ children }) {
     React.createElement("div", { className: "w-full", style: { maxWidth: "380px" } },
       React.createElement("div", { className: "flex flex-col items-center gap-2 mb-6" },
         React.createElement("div", {
-          className: "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold",
-          style: { border: `1px solid ${GOLD}`, color: GOLD }
+          className: "w-8 h-8 rounded-full flex items-center justify-center text-xs",
+          style: { border: `1px solid ${GOLD}`, color: GOLD, fontWeight: 600 }
         }, "A"),
         React.createElement("span", {
-          className: "text-xs uppercase tracking-[0.25em]",
-          style: { color: MUTED }
+          className: "text-xs uppercase",
+          style: { color: MUTED, letterSpacing: "0.25em" }
         }, "Atelier — Gestao da Loja")
       ),
       React.createElement(Card, { className: "p-6" }, children)
@@ -86,11 +86,11 @@ function LoadingScreen(message, isError) {
     className: "w-full min-h-screen flex items-center justify-center",
     style: { background: INK }
   },
-    React.createElement("div", { className: "flex flex-col items-center gap-3 text-center px-6" },
+    React.createElement("div", { className: "flex flex-col items-center gap-3 text-center", style: { padding: "0 24px" } },
       !isError && React.createElement(Icon, { name: "loader", size: 26, className: "spin", style: { color: GOLD } }),
       React.createElement("span", {
-        className: "text-xs uppercase tracking-[0.2em]",
-        style: { color: isError ? RED : MUTED }
+        className: "text-xs uppercase",
+        style: { color: isError ? RED : MUTED, letterSpacing: "0.2em" }
       }, message)
     )
   );
@@ -143,7 +143,7 @@ function LoginView({ onSignup, onForgot }) {
   }
 
   return /*#__PURE__*/React.createElement("form", { onSubmit: handleSubmit, className: "flex flex-col gap-4" },
-    React.createElement("h1", { className: "text-lg font-semibold text-center mb-1", style: { color: "#f0ede2" } }, "Entrar"),
+    React.createElement("h1", { className: "text-lg text-center mb-1", style: { color: "#f0ede2", fontWeight: 600 } }, "Entrar"),
     React.createElement(AuthMessage, { error }),
     React.createElement(Field, { label: "E-mail" },
       React.createElement(TextInput, { type: "email", required: true, value: email, onChange: e => setEmail(e.target.value), placeholder: "voce@email.com" })
@@ -154,16 +154,16 @@ function LoginView({ onSignup, onForgot }) {
     React.createElement("button", {
       type: "button",
       onClick: onForgot,
-      className: "text-xs text-left -mt-2",
-      style: { color: MUTED }
+      className: "text-xs text-left",
+      style: { color: MUTED, marginTop: "-8px" }
     }, "Esqueci minha senha"),
     React.createElement(GoldButton, { type: "submit", disabled: loading, className: "w-full justify-center" },
       loading ? React.createElement(Icon, { name: "loader", size: 14, className: "spin" }) : null,
       loading ? "Entrando…" : "Entrar"
     ),
-    React.createElement("div", { className: "flex items-center gap-3 my-1" },
+    React.createElement("div", { className: "flex items-center gap-3", style: { margin: "4px 0" } },
       React.createElement("div", { className: "flex-1", style: { height: 1, background: LINE } }),
-      React.createElement("span", { className: "text-[11px]", style: { color: MUTED } }, "ou"),
+      React.createElement("span", { style: { color: MUTED, fontSize: "11px" } }, "ou"),
       React.createElement("div", { className: "flex-1", style: { height: 1, background: LINE } })
     ),
     React.createElement(GoogleButton, { onClick: handleGoogle }),
@@ -207,7 +207,7 @@ function SignupView({ onSwitch }) {
   }
 
   return /*#__PURE__*/React.createElement("form", { onSubmit: handleSubmit, className: "flex flex-col gap-4" },
-    React.createElement("h1", { className: "text-lg font-semibold text-center mb-1", style: { color: "#f0ede2" } }, "Criar conta"),
+    React.createElement("h1", { className: "text-lg text-center mb-1", style: { color: "#f0ede2", fontWeight: 600 } }, "Criar conta"),
     React.createElement(AuthMessage, { error, info }),
     React.createElement(Field, { label: "Nome" },
       React.createElement(TextInput, { required: true, value: nome, onChange: e => setNome(e.target.value), placeholder: "Seu nome" })
@@ -252,7 +252,7 @@ function ForgotPasswordView({ onBack }) {
   }
 
   return /*#__PURE__*/React.createElement("form", { onSubmit: handleSubmit, className: "flex flex-col gap-4" },
-    React.createElement("h1", { className: "text-lg font-semibold text-center mb-1", style: { color: "#f0ede2" } }, "Recuperar senha"),
+    React.createElement("h1", { className: "text-lg text-center mb-1", style: { color: "#f0ede2", fontWeight: 600 } }, "Recuperar senha"),
     React.createElement(AuthMessage, { error, info }),
     React.createElement(Field, { label: "E-mail" },
       React.createElement(TextInput, { type: "email", required: true, value: email, onChange: e => setEmail(e.target.value), placeholder: "voce@email.com" })
@@ -264,8 +264,8 @@ function ForgotPasswordView({ onBack }) {
     React.createElement("button", {
       type: "button",
       onClick: onBack,
-      className: "text-xs text-center mt-1",
-      style: { color: MUTED }
+      className: "text-xs text-center",
+      style: { color: MUTED, marginTop: "4px" }
     }, "Voltar para o login")
   );
 }
@@ -292,7 +292,7 @@ function ResetPasswordView() {
   }
 
   return /*#__PURE__*/React.createElement("form", { onSubmit: handleSubmit, className: "flex flex-col gap-4" },
-    React.createElement("h1", { className: "text-lg font-semibold text-center mb-1", style: { color: "#f0ede2" } }, "Definir nova senha"),
+    React.createElement("h1", { className: "text-lg text-center mb-1", style: { color: "#f0ede2", fontWeight: 600 } }, "Definir nova senha"),
     React.createElement(AuthMessage, { error, info }),
     React.createElement(Field, { label: "Nova senha" },
       React.createElement(TextInput, { type: "password", required: true, value: senha, onChange: e => setSenha(e.target.value), placeholder: "Minimo 6 caracteres" })
@@ -330,11 +330,11 @@ function daysUntil(dateString) {
 function SubscriptionPanel({ accountStatus, onClose }) {
   const days = daysUntil(accountStatus && accountStatus.current_period_end);
   return /*#__PURE__*/React.createElement("div", {
-    className: "absolute right-4 sm:right-6 top-10 z-50 w-72 rounded-sm p-4 text-xs",
-    style: { background: PANEL, border: `1px solid ${LINE}`, color: MUTED, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }
+    className: "absolute z-50 rounded-sm p-4 text-xs",
+    style: { right: "16px", top: "40px", width: "288px", background: PANEL, border: `1px solid ${LINE}`, color: MUTED, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }
   },
     React.createElement("div", { className: "flex items-center justify-between mb-3" },
-      React.createElement("span", { className: "font-semibold", style: { color: "#e7e3d6" } }, "Minha assinatura"),
+      React.createElement("span", { style: { color: "#e7e3d6", fontWeight: 600 } }, "Minha assinatura"),
       React.createElement("button", { onClick: onClose, style: { color: MUTED } }, "✕")
     ),
     React.createElement("div", { className: "flex flex-col gap-1.5" },
@@ -348,7 +348,8 @@ function SubscriptionPanel({ accountStatus, onClose }) {
           days !== null && days >= 0 ? ` (${days} dia${days === 1 ? "" : "s"})` : ""
         )
       )
-    )
+    ),
+    accountStatus?.is_exempt && React.createElement(AdminActivatePanel)
   );
 }
 
@@ -360,7 +361,7 @@ function UserBar({ email, onLogout, accountStatus }) {
     await onLogout();
   }
   return /*#__PURE__*/React.createElement("div", {
-    className: "w-full flex items-center justify-between px-4 sm:px-6 py-1.5 text-xs relative",
+    className: "w-full flex items-center justify-between px-4 py-1.5 text-xs relative",
     style: { background: PANEL2, borderBottom: `1px solid ${LINE}`, color: MUTED }
   },
     React.createElement("span", null, "Conectado como ", React.createElement("strong", { style: { color: "#d8d4c8" } }, email)),
@@ -370,175 +371,88 @@ function UserBar({ email, onLogout, accountStatus }) {
         className: "px-2 py-0.5 rounded-sm",
         style: { border: `1px solid ${LINE}`, color: accountStatus.has_access ? GREEN : RED }
       }, planStatusLabel(accountStatus)),
-      React.createElement(GhostButton, { onClick: handleClick, className: "!py-1 !px-2.5 !text-[11px]" }, loggingOut ? "Saindo…" : "Sair")
+      React.createElement("button", {
+        onClick: handleClick,
+        style: {
+          padding: "4px 10px",
+          fontSize: "11px",
+          borderRadius: "2px",
+          border: `1px solid ${LINE}`,
+          color: "#d8d4c8",
+          background: "transparent"
+        }
+      }, loggingOut ? "Saindo…" : "Sair")
     ),
     showPanel && React.createElement(SubscriptionPanel, { accountStatus, onClose: () => setShowPanel(false) })
   );
 }
 
-function PixPaymentView({ onBack, onConfirmed }) {
-  const [cpf, setCpf] = useState("");
+function AdminActivatePanel() {
+  const [email, setEmail] = useState("");
+  const [days, setDays] = useState("30");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [pix, setPix] = useState(null); // { qr_code, qr_code_base64 }
-  const [copied, setCopied] = useState(false);
 
-  async function handleGenerate(e) {
+  async function handleActivate(e) {
     e.preventDefault();
     setError("");
-    const digits = cpf.replace(/\D/g, "");
-    if (digits.length !== 11) { setError("Digite um CPF válido (11 números)."); return; }
+    setMessage("");
     setLoading(true);
-    const { data, error } = await window.supabaseClient.functions.invoke("create-pix-charge", {
-      method: "POST",
-      body: { cpf: digits }
+    const { data, error } = await window.supabaseClient.rpc("admin_activate_subscription", {
+      p_customer_email: email.trim(),
+      p_days: parseInt(days, 10) || 30
     });
     setLoading(false);
-    if (error || !data?.qr_code) {
-      let detail = error?.message || "sem detalhes";
-      try {
-        if (error?.context?.json) {
-          const body = await error.context.json();
-          detail = JSON.stringify(body);
-        }
-      } catch (_) { /* mantem o detail atual */ }
-      setError(`Não foi possível gerar o Pix agora. [debug: ${detail}]`);
+    if (error) {
+      setError(error.message.includes("customer_not_found")
+        ? "Não encontrei nenhuma conta com esse e-mail."
+        : "Não foi possível ativar agora: " + error.message);
       return;
     }
-    setPix(data);
+    const row = data && data[0];
+    setMessage(row
+      ? `Ativado! ${row.out_account_name} tem acesso até ${new Date(row.out_new_period_end).toLocaleDateString("pt-BR")}.`
+      : "Ativado!");
+    setEmail("");
   }
 
-  function handleCopy() {
-    navigator.clipboard?.writeText(pix.qr_code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  // Depois de gerar o Pix, fica consultando se já foi pago
-  useEffect(() => {
-    if (!pix) return;
-    let tries = 0;
-    const interval = setInterval(async () => {
-      tries += 1;
-      const { data } = await window.supabaseClient.rpc("get_my_account_status");
-      const fresh = data && data[0];
-      if (fresh?.has_access) {
-        clearInterval(interval);
-        onConfirmed(fresh);
-      } else if (tries >= 40) {
-        clearInterval(interval);
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [pix]);
-
-  if (pix) {
-    return /*#__PURE__*/React.createElement("div", { className: "flex flex-col gap-4 text-center" },
-      React.createElement("h1", { className: "text-lg font-semibold", style: { color: "#f0ede2" } }, "Escaneie ou copie o código Pix"),
-      pix.qr_code_base64 && React.createElement("img", {
-        src: `data:image/png;base64,${pix.qr_code_base64}`,
-        alt: "QR Code Pix",
-        className: "mx-auto rounded-sm",
-        style: { width: 200, height: 200, background: "#fff", padding: 8 }
-      }),
-      React.createElement("div", {
-        className: "text-[10px] break-all px-3 py-2 rounded-sm text-left",
-        style: { background: PANEL2, border: `1px solid ${LINE}`, color: MUTED }
-      }, pix.qr_code),
-      React.createElement(GhostButton, { onClick: handleCopy, className: "w-full justify-center" },
-        copied ? "Copiado!" : "Copiar código Pix"
-      ),
-      React.createElement("p", { className: "text-xs", style: { color: MUTED } },
-        "Assim que o pagamento for aprovado pelo Mercado Pago, seu acesso é liberado automaticamente — não precisa fazer mais nada nesta tela."
-      ),
-      React.createElement(Icon, { name: "loader", size: 18, className: "spin mx-auto", style: { color: GOLD } })
-    );
-  }
-
-  return /*#__PURE__*/React.createElement("form", { onSubmit: handleGenerate, className: "flex flex-col gap-4" },
-    React.createElement("h1", { className: "text-lg font-semibold text-center", style: { color: "#f0ede2" } }, "Pagar com Pix"),
-    React.createElement(AuthMessage, { error }),
-    React.createElement(Field, { label: "Seu CPF (necessário para gerar o Pix)" },
-      React.createElement(TextInput, { value: cpf, onChange: e => setCpf(e.target.value), placeholder: "000.000.000-00" })
+  return /*#__PURE__*/React.createElement("form", { onSubmit: handleActivate, className: "flex flex-col gap-3 text-xs", style: { marginTop: "8px" } },
+    React.createElement("div", { style: { color: "#e7e3d6", fontWeight: 600 } }, "Ativar cliente manualmente"),
+    React.createElement(AuthMessage, { error, info: message }),
+    React.createElement(Field, { label: "E-mail do cliente (o que ele usou pra criar conta)" },
+      React.createElement(TextInput, { type: "email", required: true, value: email, onChange: e => setEmail(e.target.value), placeholder: "cliente@email.com" })
+    ),
+    React.createElement(Field, { label: "Dias de acesso" },
+      React.createElement(TextInput, { type: "number", min: 1, value: days, onChange: e => setDays(e.target.value) })
     ),
     React.createElement(GoldButton, { type: "submit", disabled: loading, className: "w-full justify-center" },
       loading ? React.createElement(Icon, { name: "loader", size: 14, className: "spin" }) : null,
-      loading ? "Gerando Pix…" : "Gerar Pix"
-    ),
-    React.createElement(GhostButton, { type: "button", onClick: onBack, className: "w-full justify-center" }, "Voltar")
+      loading ? "Ativando…" : "Ativar acesso"
+    )
   );
 }
 
-function SubscriptionBlockedScreen({ accountStatus, onLogout, onSubscribed }) {
+function SubscriptionBlockedScreen({ accountStatus, onLogout }) {
   const [loggingOut, setLoggingOut] = useState(false);
-  const [subscribing, setSubscribing] = useState(false);
-  const [subscribeError, setSubscribeError] = useState("");
-  const [view, setView] = useState("options"); // options | pix
-  const [waitingConfirmation, setWaitingConfirmation] = useState(
-    () => new URLSearchParams(window.location.search).get("mp_return") === "1"
-  );
 
   async function handleLogout() {
     setLoggingOut(true);
     await onLogout();
   }
 
-  async function handleSubscribeCard() {
-    setSubscribeError("");
-    setSubscribing(true);
-    const { data, error } = await window.supabaseClient.functions.invoke("create-mp-subscription", {
-      method: "POST"
-    });
-    setSubscribing(false);
-    if (error || !data?.init_point) {
-      setSubscribeError("Não foi possível iniciar a assinatura agora. Tente novamente em instantes.");
-      return;
-    }
-    window.location.href = data.init_point;
-  }
-
-  // Depois de voltar do checkout do Mercado Pago (cartão), o status ainda
-  // depende do webhook confirmar — então ficamos consultando por um tempo.
-  useEffect(() => {
-    if (!waitingConfirmation) return;
-    let tries = 0;
-    const interval = setInterval(async () => {
-      tries += 1;
-      const { data } = await window.supabaseClient.rpc("get_my_account_status");
-      const fresh = data && data[0];
-      if (fresh?.has_access) {
-        clearInterval(interval);
-        onSubscribed(fresh);
-      } else if (tries >= 10) {
-        clearInterval(interval);
-        setWaitingConfirmation(false);
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [waitingConfirmation]);
-
-  if (waitingConfirmation) {
-    return LoadingScreen("Confirmando seu pagamento com o Mercado Pago…");
-  }
-
-  if (view === "pix") {
-    return React.createElement(AuthShell, null,
-      React.createElement(PixPaymentView, { onBack: () => setView("options"), onConfirmed: onSubscribed })
-    );
-  }
-
   const statusMessages = {
-    pending: "O pagamento da sua assinatura está pendente. Regularize para voltar a ter acesso completo.",
-    paused: "Sua assinatura está pausada. Reative para voltar a ter acesso ao CRM.",
-    canceled: "Sua assinatura foi cancelada. Assine novamente para voltar a ter acesso ao CRM.",
-    expired: "Seu período de teste ou assinatura expirou. Assine um plano para continuar."
+    pending: "O pagamento da sua assinatura está pendente. Entre em contato para regularizar.",
+    paused: "Sua assinatura está pausada. Entre em contato para reativar.",
+    canceled: "Sua assinatura foi cancelada. Entre em contato para assinar novamente.",
+    expired: "Seu período de teste ou assinatura expirou. Entre em contato para continuar usando o CRM."
   };
   const message = statusMessages[accountStatus?.subscription_status] ||
     "Sua conta não tem uma assinatura ativa no momento.";
 
   return /*#__PURE__*/React.createElement(AuthShell, null,
     React.createElement("div", { className: "flex flex-col gap-4 text-center" },
-      React.createElement("h1", { className: "text-lg font-semibold", style: { color: "#f0ede2" } }, "Assinatura necessária"),
+      React.createElement("h1", { className: "text-lg", style: { color: "#f0ede2", fontWeight: 600 } }, "Assinatura necessária"),
       React.createElement("p", { className: "text-sm", style: { color: MUTED } }, message),
       React.createElement("div", {
         className: "text-xs px-3 py-2 rounded-sm text-left",
@@ -546,14 +460,6 @@ function SubscriptionBlockedScreen({ accountStatus, onLogout, onSubscribed }) {
       },
         React.createElement("div", null, "Plano: ", React.createElement("strong", { style: { color: "#d8d4c8" } }, accountStatus?.plan_name || "—")),
         React.createElement("div", null, "Status: ", React.createElement("strong", { style: { color: RED } }, planStatusLabel(accountStatus)))
-      ),
-      React.createElement(AuthMessage, { error: subscribeError }),
-      React.createElement(GoldButton, { onClick: handleSubscribeCard, disabled: subscribing, className: "w-full justify-center" },
-        subscribing ? React.createElement(Icon, { name: "loader", size: 14, className: "spin" }) : null,
-        subscribing ? "Abrindo o Mercado Pago…" : "Assinar com cartão (Mercado Pago)"
-      ),
-      React.createElement(GhostButton, { onClick: () => setView("pix"), className: "w-full justify-center" },
-        "Pagar com Pix"
       ),
       React.createElement(GhostButton, { onClick: handleLogout, className: "w-full justify-center" },
         loggingOut ? "Saindo…" : "Sair"
@@ -652,14 +558,7 @@ function AuthGate() {
   }
 
   if (accountStatus && !accountStatus.has_access) {
-    return React.createElement(SubscriptionBlockedScreen, {
-      accountStatus,
-      onLogout: handleLogout,
-      onSubscribed: (freshStatus) => {
-        setAccountStatus(freshStatus);
-        window.history.replaceState({}, "", window.location.pathname);
-      }
-    });
+    return React.createElement(SubscriptionBlockedScreen, { accountStatus, onLogout: handleLogout });
   }
 
   return /*#__PURE__*/React.createElement(React.Fragment, null,

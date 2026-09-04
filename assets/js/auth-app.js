@@ -376,10 +376,97 @@ function UserBar({ email, onLogout, accountStatus }) {
   );
 }
 
+function PixPaymentView({ onBack, onConfirmed }) {
+  const [cpf, setCpf] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [pix, setPix] = useState(null); // { qr_code, qr_code_base64 }
+  const [copied, setCopied] = useState(false);
+
+  async function handleGenerate(e) {
+    e.preventDefault();
+    setError("");
+    const digits = cpf.replace(/\D/g, "");
+    if (digits.length !== 11) { setError("Digite um CPF válido (11 números)."); return; }
+    setLoading(true);
+    const { data, error } = await window.supabaseClient.functions.invoke("create-pix-charge", {
+      method: "POST",
+      body: { cpf: digits }
+    });
+    setLoading(false);
+    if (error || !data?.qr_code) {
+      setError("Não foi possível gerar o Pix agora. Tente novamente em instantes.");
+      return;
+    }
+    setPix(data);
+  }
+
+  function handleCopy() {
+    navigator.clipboard?.writeText(pix.qr_code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  // Depois de gerar o Pix, fica consultando se já foi pago
+  useEffect(() => {
+    if (!pix) return;
+    let tries = 0;
+    const interval = setInterval(async () => {
+      tries += 1;
+      const { data } = await window.supabaseClient.rpc("get_my_account_status");
+      const fresh = data && data[0];
+      if (fresh?.has_access) {
+        clearInterval(interval);
+        onConfirmed(fresh);
+      } else if (tries >= 40) {
+        clearInterval(interval);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [pix]);
+
+  if (pix) {
+    return /*#__PURE__*/React.createElement("div", { className: "flex flex-col gap-4 text-center" },
+      React.createElement("h1", { className: "text-lg font-semibold", style: { color: "#f0ede2" } }, "Escaneie ou copie o código Pix"),
+      pix.qr_code_base64 && React.createElement("img", {
+        src: `data:image/png;base64,${pix.qr_code_base64}`,
+        alt: "QR Code Pix",
+        className: "mx-auto rounded-sm",
+        style: { width: 200, height: 200, background: "#fff", padding: 8 }
+      }),
+      React.createElement("div", {
+        className: "text-[10px] break-all px-3 py-2 rounded-sm text-left",
+        style: { background: PANEL2, border: `1px solid ${LINE}`, color: MUTED }
+      }, pix.qr_code),
+      React.createElement(GhostButton, { onClick: handleCopy, className: "w-full justify-center" },
+        copied ? "Copiado!" : "Copiar código Pix"
+      ),
+      React.createElement("p", { className: "text-xs", style: { color: MUTED } },
+        "Assim que o pagamento for aprovado pelo Mercado Pago, seu acesso é liberado automaticamente — não precisa fazer mais nada nesta tela."
+      ),
+      React.createElement(Icon, { name: "loader", size: 18, className: "spin mx-auto", style: { color: GOLD } })
+    );
+  }
+
+  return /*#__PURE__*/React.createElement("form", { onSubmit: handleGenerate, className: "flex flex-col gap-4" },
+    React.createElement("h1", { className: "text-lg font-semibold text-center", style: { color: "#f0ede2" } }, "Pagar com Pix"),
+    React.createElement(AuthMessage, { error }),
+    React.createElement(Field, { label: "Seu CPF (necessário para gerar o Pix)" },
+      React.createElement(TextInput, { value: cpf, onChange: e => setCpf(e.target.value), placeholder: "000.000.000-00" })
+    ),
+    React.createElement(GoldButton, { type: "submit", disabled: loading, className: "w-full justify-center" },
+      loading ? React.createElement(Icon, { name: "loader", size: 14, className: "spin" }) : null,
+      loading ? "Gerando Pix…" : "Gerar Pix"
+    ),
+    React.createElement(GhostButton, { type: "button", onClick: onBack, className: "w-full justify-center" }, "Voltar")
+  );
+}
+
 function SubscriptionBlockedScreen({ accountStatus, onLogout, onSubscribed }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
   const [subscribeError, setSubscribeError] = useState("");
+  const [view, setView] = useState("options"); // options | pix
   const [waitingConfirmation, setWaitingConfirmation] = useState(
     () => new URLSearchParams(window.location.search).get("mp_return") === "1"
   );
@@ -389,7 +476,7 @@ function SubscriptionBlockedScreen({ accountStatus, onLogout, onSubscribed }) {
     await onLogout();
   }
 
-  async function handleSubscribe() {
+  async function handleSubscribeCard() {
     setSubscribeError("");
     setSubscribing(true);
     const { data, error } = await window.supabaseClient.functions.invoke("create-mp-subscription", {
@@ -403,8 +490,8 @@ function SubscriptionBlockedScreen({ accountStatus, onLogout, onSubscribed }) {
     window.location.href = data.init_point;
   }
 
-  // Depois de voltar do checkout do Mercado Pago, o status ainda depende
-  // do webhook confirmar — então ficamos consultando por um tempo.
+  // Depois de voltar do checkout do Mercado Pago (cartão), o status ainda
+  // depende do webhook confirmar — então ficamos consultando por um tempo.
   useEffect(() => {
     if (!waitingConfirmation) return;
     let tries = 0;
@@ -425,6 +512,12 @@ function SubscriptionBlockedScreen({ accountStatus, onLogout, onSubscribed }) {
 
   if (waitingConfirmation) {
     return LoadingScreen("Confirmando seu pagamento com o Mercado Pago…");
+  }
+
+  if (view === "pix") {
+    return React.createElement(AuthShell, null,
+      React.createElement(PixPaymentView, { onBack: () => setView("options"), onConfirmed: onSubscribed })
+    );
   }
 
   const statusMessages = {
@@ -448,9 +541,12 @@ function SubscriptionBlockedScreen({ accountStatus, onLogout, onSubscribed }) {
         React.createElement("div", null, "Status: ", React.createElement("strong", { style: { color: RED } }, planStatusLabel(accountStatus)))
       ),
       React.createElement(AuthMessage, { error: subscribeError }),
-      React.createElement(GoldButton, { onClick: handleSubscribe, disabled: subscribing, className: "w-full justify-center" },
+      React.createElement(GoldButton, { onClick: handleSubscribeCard, disabled: subscribing, className: "w-full justify-center" },
         subscribing ? React.createElement(Icon, { name: "loader", size: 14, className: "spin" }) : null,
-        subscribing ? "Abrindo o Mercado Pago…" : "Assinar agora"
+        subscribing ? "Abrindo o Mercado Pago…" : "Assinar com cartão (Mercado Pago)"
+      ),
+      React.createElement(GhostButton, { onClick: () => setView("pix"), className: "w-full justify-center" },
+        "Pagar com Pix"
       ),
       React.createElement(GhostButton, { onClick: handleLogout, className: "w-full justify-center" },
         loggingOut ? "Saindo…" : "Sair"

@@ -578,16 +578,34 @@ function AuthGate() {
   }, []);
 
   useEffect(() => {
-    if (status === "signedIn" && session && session.user && !accountReady) {
-      ensureAccountForUser(session.user)
-        .then(() => window.supabaseClient.rpc("get_my_account_status"))
-        .then(({ data, error }) => {
+    if (status !== "signedIn" || !session || !session.user || accountReady) return;
+
+    let cancelled = false;
+
+    async function prepareAccountWithRetry(maxTries = 4) {
+      for (let attempt = 1; attempt <= maxTries; attempt++) {
+        try {
+          await ensureAccountForUser(session.user);
+          const { data, error } = await window.supabaseClient.rpc("get_my_account_status");
           if (error) throw error;
+          if (cancelled) return;
           setAccountStatus(data && data[0] ? data[0] : null);
           setAccountReady(true);
-        })
-        .catch(e => setAccountError(e.message || "Erro ao preparar sua conta."));
+          return;
+        } catch (e) {
+          if (attempt === maxTries) {
+            if (!cancelled) setAccountError(e.message || "Erro ao preparar sua conta.");
+            return;
+          }
+          // Espera um pouco e tenta de novo — logo após confirmar o
+          // e-mail, às vezes a sessão ainda não está 100% pronta.
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+        }
+      }
     }
+
+    prepareAccountWithRetry();
+    return () => { cancelled = true; };
   }, [status, session, accountReady]);
 
   async function handleLogout() {
